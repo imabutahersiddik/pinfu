@@ -1,0 +1,19 @@
+{
+    "name": "taher/pinata-file-upload",
+    "description": "A PHP application for uploading files to Pinata's Files API",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Taher\\PinataFileUpload\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Abu Taher Siddik"
+        }
+    ],
+    "minimum-stability": "stable",
+    "require": {
+        "guzzlehttp/guzzle": "^7.9"
+    }
+}
