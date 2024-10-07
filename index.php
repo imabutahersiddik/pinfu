@@ -118,26 +118,37 @@
     <script>
         // Load keys from local storage
         window.onload = function() {
-            const apiKey = localStorage.getItem('apiKey');
-            const apiSecret = localStorage.getItem('apiSecret');
-            const jwt = localStorage.getItem('jwt');
+    // Load keys from local storage
+    const apiKey = localStorage.getItem('apiKey');
+    const apiSecret = localStorage.getItem('apiSecret');
+    const jwt = localStorage.getItem('jwt');
 
-            if (apiKey && apiSecret && jwt) {
-                document.getElementById('apiKey').value = apiKey;
-                document.getElementById('apiSecret').value = apiSecret;
-                document.getElementById('jwt').value = jwt;
-                document.getElementById('removeKeysBtn').classList.remove('hidden');
-                document.getElementById('keyForm').classList.add('hidden'); // Hide form after loading keys
+    if (apiKey && apiSecret && jwt) {
+        document.getElementById('apiKey').value = apiKey;
+        document.getElementById('apiSecret').value = apiSecret;
+        document.getElementById('jwt').value = jwt;
+        document.getElementById('removeKeysBtn').classList.remove('hidden');
+        document.getElementById('keyForm').classList.add('hidden'); // Hide form after loading keys
 
-                // Set hidden inputs for submission
-                document.getElementById('hiddenApiKey').value = apiKey;
-                document.getElementById('hiddenApiSecret').value = apiSecret;
-                document.getElementById('hiddenJwt').value = jwt;
-            }
+        // Set hidden inputs for submission
+        document.getElementById('hiddenApiKey').value = apiKey;
+        document.getElementById('hiddenApiSecret').value = apiSecret;
+        document.getElementById('hiddenJwt').value = jwt;
+    }
 
-            // Load uploaded files from local storage
-            loadUploadedFiles();
-        };
+    // Load uploaded files from local storage
+    loadUploadedFiles();
+
+    // Check if the user has visited before
+    const hasVisited = localStorage.getItem("hasVisited");
+
+    if (!hasVisited) {
+        showOverlay();
+        localStorage.setItem("hasVisited", "true");
+    } else {
+        document.getElementById("overlay").style.display = "none"; // Ensure overlay is hidden
+    }
+};
 
         function saveKeys() {
             const apiKey = document.getElementById('apiKey').value;
@@ -208,30 +219,30 @@
                 listContainer.appendChild(listItem);
             });
         }
-        let currentPage = 1;
+let currentPage = 1;
 const itemsPerPage = 9; // Number of items to display per page
 
 function loadUploadedFiles() {
     let uploadedFiles = JSON.parse(localStorage.getItem("uploadedFiles")) || [];
     const listContainer = document.getElementById("uploadedFilesList");
-    
+
     // Calculate total pages
     const totalPages = Math.ceil(uploadedFiles.length / itemsPerPage);
     
     // Calculate start and end index for slicing the array
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
-    
+
     // Clear existing list
     listContainer.innerHTML = ""; 
-    
+
     // Slice the array for current page
     const currentFiles = uploadedFiles.slice(startIndex, endIndex);
     
     currentFiles.forEach(hash => {
         const listItem = document.createElement("li");
         listItem.innerHTML = `IPFS Hash: ${hash} - 
-            <a href="https://gateway.pinata.cloud/ipfs/${hash}" target="_blank">View File</a>`;
+            <a style="color:#2196F3 !important;" href="https://gateway.pinata.cloud/ipfs/${hash}" target="_blank">View File</a>`;
         listContainer.appendChild(listItem);
     });
 
@@ -248,27 +259,17 @@ function updatePaginationControls(totalPages) {
 
 function changePage(direction) {
     currentPage += direction;
-    
+
     // Ensure current page is within bounds
     if (currentPage < 1) currentPage = 1;
-    
+
     const uploadedFiles = JSON.parse(localStorage.getItem("uploadedFiles")) || [];
     const totalPages = Math.ceil(uploadedFiles.length / itemsPerPage);
-    
+
     if (currentPage > totalPages) currentPage = totalPages;
 
     loadUploadedFiles(); // Reload files for the new page
 }
-window.onload = function() {
-    const hasVisited = localStorage.getItem("hasVisited");
-
-    if (!hasVisited) {
-        showOverlay();
-        localStorage.setItem("hasVisited", "true");
-    } else {
-        document.getElementById("overlay").style.display = "none"; // Ensure overlay is hidden
-    }
-};
 
 function hideOverlay() {
     const overlay = document.getElementById("overlay");
