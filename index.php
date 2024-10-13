@@ -63,12 +63,17 @@
     </div>
 
     <form id="uploadForm" action="upload.php" method="post" enctype="multipart/form-data">
-        <input type="file" name="file" required>
-        <input type="hidden" id="hiddenApiKey" name="apiKey">
-        <input type="hidden" id="hiddenApiSecret" name="apiSecret">
-        <input type="hidden" id="hiddenJwt" name="jwt">
-        <button type="submit">Upload</button>
-    </form>
+    <input type="file" name="file" required>
+    <input type="hidden" id="hiddenApiKey" name="apiKey">
+    <input type="hidden" id="hiddenApiSecret" name="apiSecret">
+    <input type="hidden" id="hiddenJwt" name="jwt">
+    <button type="submit">Upload</button>
+</form>
+
+<div id="progressContainer" style="display: none;">
+    <progress id="uploadProgress" value="0" max="100"></progress>
+    <span id="progressPercentage">0%</span>
+</div>
 
     <h2>Uploaded Files</h2>
     <ul id="uploadedFilesList"></ul>
@@ -349,6 +354,56 @@ function closeOverlay() {
 
 // Set up the event listener for the Close button
 document.getElementById("closeButton").onclick = closeOverlay;
+
+document.getElementById("uploadForm").onsubmit = function(event) {
+    event.preventDefault(); // Prevent default form submission
+
+    const formData = new FormData(this);
+    
+    // Show progress container
+    document.getElementById("progressContainer").style.display = "block";
+    document.getElementById("uploadProgress").value = 0;
+    document.getElementById("progressPercentage").innerText = "0%";
+
+    const xhr = new XMLHttpRequest();
+    
+    xhr.open("POST", "upload.php", true);
+
+    // Update progress bar
+    xhr.upload.onprogress = function(event) {
+        if (event.lengthComputable) {
+            const percentComplete = (event.loaded / event.total) * 100;
+            document.getElementById("uploadProgress").value = percentComplete;
+            document.getElementById("progressPercentage").innerText = Math.round(percentComplete) + "%";
+        }
+    };
+
+    xhr.onload = function() {
+        if (xhr.status === 200) {
+            const data = JSON.parse(xhr.responseText);
+            if(data.success){
+                alert("File uploaded successfully! IPFS Hash: " + data.ipfsHash);
+                saveUploadedFile(data.ipfsHash); // Save to local storage
+                loadUploadedFiles(); // Reload uploaded files list
+            } else {
+                alert(data.message);
+            }
+        } else {
+            alert("Upload failed. Please try again.");
+        }
+        // Hide progress container after upload
+        document.getElementById("progressContainer").style.display = "none";
+        document.getElementById("uploadProgress").value = 0; // Reset progress bar
+        document.getElementById("progressPercentage").innerText = "0%"; // Reset percentage
+    };
+
+    xhr.onerror = function() {
+        alert("An error occurred during the upload.");
+        document.getElementById("progressContainer").style.display = "none"; // Hide progress container on error
+    };
+
+    xhr.send(formData);
+};
     </script>
 </body>
 </html>
