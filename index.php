@@ -75,8 +75,49 @@
     <span id="progressPercentage">0%</span>
 </div>
 
-    <h2>Uploaded Files</h2>
-    <ul id="uploadedFilesList"></ul>
+    <!-- Tabs for different file categories -->
+    <ul class="nav nav-tabs" id="fileTabs">
+        <li class="nav-item">
+            <a style="color:#2196F3 !important" class="nav-link active" data-toggle="tab" href="#images">Images</a>
+        </li>
+        <li class="nav-item">
+            <a style="color:#2196F3 !important" class="nav-link" data-toggle="tab" href="#videos">Videos</a>
+        </li>
+        <li class="nav-item">
+            <a style="color:#2196F3 !important" class="nav-link" data-toggle="tab" href="#documents">Documents</a>
+        </li>
+        <li class="nav-item">
+            <a style="color:#2196F3 !important" class="nav-link" data-toggle="tab" href="#codes">Codes</a>
+        </li>
+        <li class="nav-item">
+            <a style="color:#2196F3 !important" class="nav-link" data-toggle="tab" href="#archives">Archives</a>
+        </li>
+        <li class="nav-item">
+            <a style="color:#2196F3 !important" class="nav-link" data-toggle="tab" href="#software">Software</a>
+        </li>
+    </ul>
+
+    <!-- Tab content for uploaded files -->
+    <div class="tab-content">
+        <div id="images" class="tab-pane fade show active">
+            <ul id="uploadedImagesList"></ul>
+        </div>
+        <div id="videos" class="tab-pane fade">
+            <ul id="uploadedVideosList"></ul>
+        </div>
+        <div id="documents" class="tab-pane fade">
+            <ul id="uploadedDocumentsList"></ul>
+        </div>
+        <div id="codes" class="tab-pane fade">
+            <ul id="uploadedCodesList"></ul>
+        </div>
+        <div id="archives" class="tab-pane fade">
+            <ul id="uploadedArchivesList"></ul>
+        </div>
+        <div id="software" class="tab-pane fade">
+            <ul id="uploadedSoftwareList"></ul>
+        </div>
+    </div>
     <div id="paginationControls">
     <button id="prevPageBtn" onclick="changePage(-1)" class="hidden">Previous</button>
     <span id="pageInfo"></span>
@@ -155,19 +196,22 @@
     }
 };
 
-        function saveKeys() {
-            const apiKey = document.getElementById('apiKey').value;
-            const apiSecret = document.getElementById('apiSecret').value;
-            const jwt = document.getElementById('jwt').value;
+       function saveKeys() {
+    const apiKey = document.getElementById('apiKey').value;
+    const apiSecret = document.getElementById('apiSecret').value;
+    const jwt = document.getElementById('jwt').value;
 
-            localStorage.setItem('apiKey', apiKey);
-            localStorage.setItem('apiSecret', apiSecret);
-            localStorage.setItem('jwt', jwt);
+    localStorage.setItem('apiKey', apiKey);
+    localStorage.setItem('apiSecret', apiSecret);
+    localStorage.setItem('jwt', jwt);
 
-            document.getElementById('removeKeysBtn').classList.remove('hidden');
-            document.getElementById('keyForm').classList.add('hidden'); // Hide form after saving keys
-            alert("Keys saved successfully!");
-        }
+    document.getElementById('removeKeysBtn').classList.remove('hidden');
+    document.getElementById('keyForm').classList.add('hidden'); // Hide form after saving keys
+    alert("Keys saved successfully!");
+
+    // Reload the page to reflect changes
+    location.reload();
+}
 
         function removeKeys() {
             localStorage.removeItem('apiKey');
@@ -183,77 +227,212 @@
             alert("Keys removed successfully!");
         }
 
-        document.getElementById("uploadForm").onsubmit = function(event) {
-            event.preventDefault(); // Prevent default form submission
+function saveUploadedFile(fileName, ipfsHash, sha256Hash, uploadDate) {
+    console.log(`Saving file: ${fileName} with IPFS Hash: ${ipfsHash}`); // Log received filename
 
-            const formData = new FormData(this);
+    const extension = fileName.split('.').pop().toLowerCase();
+    
+    let category;
+    
+    // Determine category based on file extension
+if ([
+    'jpg', 'jpeg', 'png', 'gif', 'bmp', 'tiff', 'tif', 
+    'svg', 'webp', 'heif', 'heic', 'raw', 'ico', 'jfif'
+].includes(extension)) {
+    category = 'images';
+} else if ([
+    'mp4', 'avi', 'mov', 'mkv', 'flv', 'wmv', 
+    'webm', 'mpeg', 'mpg', '3gp', '3g2', 'asf'
+].includes(extension)) {
+    category = 'videos';
+} else if ([
+    'zip', 'rar', 'tar', 'gz', '7z', 
+    'bz2', 'xz', 'iso', 'cab'
+].includes(extension)) {
+    category = 'archives';
+} else if ([
+    'exe', 'dmg', 'msi',
+    'deb', 'rpm',
+    'apk',
+    'bin',  // Binary files
+    'lib'   // Library files
+].includes(extension)) {
+    category = 'software';
+} else if ([
+    'pdf',
+    'doc', 'docx',
+    'xls', 'xlsx',
+    'ppt', 'pptx',
+    'txt',
+    'csv',
+    'odt',
+    'ods',
+    'odp',
+    'rtf',
+    'xml'
+].includes(extension)) {
+    category = 'documents';
+} else if ([
+    // Code and Script Files
+    'js',      // JavaScript files
+    'html',    // HTML files
+    'css',     // CSS files
+    // Configuration Files
+    '.env',
+    '.ini',
+    '.json',
+    '.yaml',
+    '.xml',
+    // Other Formats
+    '.sh'      // Shell script files
+].includes(extension)) {
+    category = "code";
+} else {
+    console.warn(`Unsupported file type: ${extension}`);
+    return; // Ignore unsupported file types
+}
 
-            fetch("upload.php", {
-                method: "POST",
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if(data.success){
-                    alert("File uploaded successfully! IPFS Hash: " + data.ipfsHash);
-                    saveUploadedFile(data.ipfsHash); // Save to local storage
-                    loadUploadedFiles(); // Reload uploaded files list
-                } else {
-                    alert(data.message);
-                }
-            })
-            .catch(error => console.error("Error:", error));
-        };
+    let uploadedFiles = JSON.parse(localStorage.getItem(category)) || [];
+    
+    // Save file name without extension and IPFS hash
+    uploadedFiles.push({ 
+        name: fileName, 
+        hash: ipfsHash,
+        sha256: sha256Hash,
+        date: uploadDate 
+    });
+    localStorage.setItem(category, JSON.stringify(uploadedFiles));
+    
+    // Debugging information to confirm saving
+    console.log(`Saved ${uploadedFiles.length} files in category: ${category}`);
+    console.log(`Received fileName: ${fileName}`);
+}
 
-        function saveUploadedFile(ipfsHash) {
-            let uploadedFiles = JSON.parse(localStorage.getItem("uploadedFiles")) || [];
-            uploadedFiles.push(ipfsHash);
-            localStorage.setItem("uploadedFiles", JSON.stringify(uploadedFiles));
-        }
-
-        function loadUploadedFiles() {
-            let uploadedFiles = JSON.parse(localStorage.getItem("uploadedFiles")) || [];
-            const listContainer = document.getElementById("uploadedFilesList");
-            
-            listContainer.innerHTML = ""; // Clear existing list
-            
-            uploadedFiles.forEach(hash => {
-                const listItem = document.createElement("li");
-                listItem.innerHTML = `IPFS Hash: ${hash} - 
-                    <a href="https://gateway.pinata.cloud/ipfs/${hash}" target="_blank">View File</a>`;
-                listContainer.appendChild(listItem);
-            });
-        }
-let currentPage = 1;
-const itemsPerPage = 9; // Number of items to display per page
-
+// Function to load uploaded files based on category
 function loadUploadedFiles() {
-    let uploadedFiles = JSON.parse(localStorage.getItem("uploadedFiles")) || [];
-    const listContainer = document.getElementById("uploadedFilesList");
+     // Load images
+     loadCategoryFiles('images', 'uploadedImagesList');
+     
+     // Load videos
+     loadCategoryFiles('videos', 'uploadedVideosList');
+     
+     // Load Documents 
+     loadCategoryFiles('documents', 'uploadedDocumentsList');
+     
+     // Load Codes 
+     loadCategoryFiles('codes', 'uploadedCodesList');
+     
+     // Load archives
+     loadCategoryFiles('archives', 'uploadedArchivesList');
+     
+     // Load software
+     loadCategoryFiles('software', 'uploadedSoftwareList');
+}
 
-    // Calculate total pages
-    const totalPages = Math.ceil(uploadedFiles.length / itemsPerPage);
+// Generic function to load files for a specific category
+function loadCategoryFiles(category, listId) {
+    let uploadedFiles = JSON.parse(localStorage.getItem(category)) || [];
+    const listContainer = document.getElementById(listId);
     
-    // Calculate start and end index for slicing the array
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
+    listContainer.innerHTML = ""; // Clear existing list
 
-    // Clear existing list
-    listContainer.innerHTML = ""; 
-
-    // Slice the array for current page
-    const currentFiles = uploadedFiles.slice(startIndex, endIndex);
-    
-    currentFiles.forEach(hash => {
+    uploadedFiles.forEach(file => {
         const listItem = document.createElement("li");
-        listItem.innerHTML = `IPFS Hash: ${hash} - 
-            <a style="color:#2196F3 !important;" href="https://gateway.pinata.cloud/ipfs/${hash}" target="_blank">View File</a>`;
+        listItem.classList.add("file-item");
+
+        // Determine thumbnail based on file type
+        let thumbnail = '';
+        const extension = file.name.split('.').pop().toLowerCase();
+
+        // Determine thumbnail based on file extension
+if ([
+    'jpg', 'jpeg', 'png', 'gif', 'bmp', 'tiff', 'tif', 
+    'svg', 'webp', 'heif', 'heic', 'raw', 'ico', 'jfif'
+].includes(extension)) {
+    thumbnail = `<img src='src/imageThumbnail.png' class='file-thumbnail' alt='Image Thumbnail'>`;
+} else if ([
+    'mp4', 'avi', 'mov', 'mkv', 'flv', 'wmv',
+    'webm', 'mpeg', 'mpg', '3gp', '3g2', 'asf'
+].includes(extension)) {
+    thumbnail = `<img src='src/videoThumbnail' class='file-thumbnail' alt='Video Thumbnail'>`;
+} else if ([
+    'zip', 'rar', 'tar', 'gz', '7z',
+    'bz2', 'xz', 'iso', 'cab'
+].includes(extension)) {
+    thumbnail = `<img src='src/archiveThumbnail' class='file-thumbnail' alt='Archive Thumbnail'>`;
+} else if ([
+    'exe', 'dmg', 'msi',
+    'deb', 'rpm',
+    'apk',
+    'bin',
+    'lib'
+].includes(extension)) {
+    thumbnail = `<img src='src/softwareThumbnail.png' class='file-thumbnail' alt='Software Thumbnail'>`;
+} else if ([
+    'pdf',
+    'doc', 'docx',
+    'xls', 'xlsx',
+    'ppt', 'pptx',
+    'txt',
+    'csv',
+    'odt',
+    'ods',
+    'odp',
+    'rtf',
+    '.xml'
+].includes(extension)) {
+    thumbnail = `<img src='src/documentThumbnail.png' class='file-thumbnail' alt='Document Thumbnail'>`;
+} else if ([
+    // Code and Script Files
+    '.js',
+    '.html',
+    '.css',
+    // Configuration Files
+    '.env',
+    '.ini',
+    '.json',
+    '.yaml',
+    // Other Formats
+    '.sh'
+].includes(extension)) {
+    thumbnail = `<img src='src/codeThumbnail' class='file-thumbnail' alt='Code Thumbnail'>`;
+} else {
+    thumbnail = `<img src='src/defaultThumbnail.png' class='file-thumbnail' alt='Default Thumbnail'>`; // Default thumbnail for unsupported types
+}
+
+        listItem.innerHTML = `
+    ${thumbnail}
+    <div>
+        <div>Name: <span><a style="color:#199909 !important" href='https://gateway.pinata.cloud/ipfs/${file.hash}' target='_blank'>${file.name}</a></span></div>
+        <div style="display: inline-block">IPFS Hash: <span style="font-size:9px">${file.hash}</span></div>
+        <div style="display: inline-block">SHA-256 Hash: <span style="font-size:9px">${file.sha256}</span></div>
+        <div style="display: inline-block">Upload Date: <span>${new Date(file.date).toLocaleString()}</span></div>
+        
+        <!-- Social Share Buttons -->
+        <div style="margin-top: 10px;">
+            <span>Share on:</span>
+            <a href="https://www.facebook.com/sharer/sharer.php?u=https://gateway.pinata.cloud/ipfs/${file.hash}" target="_blank">
+                <span class="iconify" data-icon="logos:facebook" style="font-size: 20px; margin-right: 5px;"></span>
+            </a>
+            <a href="https://twitter.com/intent/tweet?url=https://gateway.pinata.cloud/ipfs/${file.hash}&text=Check%20out%20this%20file!" target="_blank">
+                <span class="iconify" data-icon="logos:twitter" style="font-size: 20px; margin-right: 5px;"></span>
+            </a>
+            <a href="https://www.linkedin.com/sharing/share-offsite/?url=https://gateway.pinata.cloud/ipfs/${file.hash}" target="_blank">
+                <span class="iconify" data-icon="logos:linkedin" style="font-size: 20px; margin-right: 5px;"></span>
+            </a>
+            <a href="whatsapp://send?text=Check%20out%20this%20file!%20https://gateway.pinata.cloud/ipfs/${file.hash}" target="_blank">
+                <span class="iconify" data-icon="logos:whatsapp" style="font-size: 20px; margin-right: 5px;"></span>
+            </a>
+        </div>
+    </div>
+`;
+        
         listContainer.appendChild(listItem);
     });
-
-    // Update pagination controls
-    updatePaginationControls(totalPages);
 }
+let currentPage = 1;
+const itemsPerPage = 19; // Number of items to display per page
+let currentCategory = 'images'; // Default category
 
 function updatePaginationControls(totalPages) {
     document.getElementById('prevPageBtn').classList.toggle('hidden', currentPage === 1);
@@ -268,13 +447,139 @@ function changePage(direction) {
     // Ensure current page is within bounds
     if (currentPage < 1) currentPage = 1;
 
-    const uploadedFiles = JSON.parse(localStorage.getItem("uploadedFiles")) || [];
+    const uploadedFiles = JSON.parse(localStorage.getItem(currentCategory)) || [];
     const totalPages = Math.ceil(uploadedFiles.length / itemsPerPage);
 
     if (currentPage > totalPages) currentPage = totalPages;
 
-    loadUploadedFiles(); // Reload files for the new page
+    loadCategoryFiles(currentCategory, 'uploaded' + capitalizeFirstLetter(currentCategory) + 'List'); // Reload files for the new page
 }
+
+function loadCategoryFiles(category, listId) {
+    let uploadedFiles = JSON.parse(localStorage.getItem(category)) || [];
+    
+    // Calculate start and end index for slicing the array
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+
+    // Clear existing list
+    const listContainer = document.getElementById(listId);
+    listContainer.innerHTML = ""; 
+
+    // Slice the array for current page
+    const currentFiles = uploadedFiles.slice(startIndex, endIndex);
+    
+    currentFiles.forEach(file => {
+        const listItem = document.createElement("li");
+        listItem.classList.add("file-item");
+
+        // Determine thumbnail based on file type (as previously described)
+        let thumbnail = '';
+        const extension = file.name.split('.').pop().toLowerCase();
+        
+        // Determine thumbnail based on file extension
+if ([
+    'jpg', 'jpeg', 'png', 'gif', 'bmp', 'tiff', 'tif', 
+    'svg', 'webp', 'heif', 'heic', 'raw', 'ico', 'jfif'
+].includes(extension)) {
+    thumbnail = `<img src='src/imageThumbnail.png' class='file-thumbnail' alt='Image Thumbnail'>`;
+} else if ([
+    'mp4', 'avi', 'mov', 'mkv', 'flv', 'wmv',
+    'webm', 'mpeg', 'mpg', '3gp', '3g2', 'asf'
+].includes(extension)) {
+    thumbnail = `<img src='src/videoThumbnail' class='file-thumbnail' alt='Video Thumbnail'>`;
+} else if ([
+    'zip', 'rar', 'tar', 'gz', '7z',
+    'bz2', 'xz', 'iso', 'cab'
+].includes(extension)) {
+    thumbnail = `<img src='src/archiveThumbnail' class='file-thumbnail' alt='Archive Thumbnail'>`;
+} else if ([
+    'exe', 'dmg', 'msi',
+    'deb', 'rpm',
+    'apk',
+    'bin',
+    'lib'
+].includes(extension)) {
+    thumbnail = `<img src='src/softwareThumbnail.png' class='file-thumbnail' alt='Software Thumbnail'>`;
+} else if ([
+    'pdf',
+    'doc', 'docx',
+    'xls', 'xlsx',
+    'ppt', 'pptx',
+    'txt',
+    'csv',
+    'odt',
+    'ods',
+    'odp',
+    'rtf',
+    '.xml'
+].includes(extension)) {
+    thumbnail = `<img src='src/documentThumbnail.png' class='file-thumbnail' alt='Document Thumbnail'>`;
+} else if ([
+    // Code and Script Files
+    '.js',
+    '.html',
+    '.css',
+    // Configuration Files
+    '.env',
+    '.ini',
+    '.json',
+    '.yaml',
+    // Other Formats
+    '.sh'
+].includes(extension)) {
+    thumbnail = `<img src='src/codeThumbnail' class='file-thumbnail' alt='Code Thumbnail'>`;
+} else {
+    thumbnail = `<img src='src/defaultThumbnail.png' class='file-thumbnail' alt='Default Thumbnail'>`; // Default thumbnail for unsupported types
+}
+
+        listItem.innerHTML = `
+    ${thumbnail}
+    <div>
+        <div>Name: <span><a style="color:#199909 !important" href='https://gateway.pinata.cloud/ipfs/${file.hash}' target='_blank'>${file.name}</a></span></div>
+        <div style="display: inline-block">IPFS Hash: <span style="font-size:9px">${file.hash}</span></div>
+        <div style="display: inline-block">SHA-256 Hash: <span style="font-size:9px">${file.sha256}</span></div>
+        <div style="display: inline-block">Upload Date: <span>${new Date(file.date).toLocaleString()}</span></div>
+        
+        <!-- Social Share Buttons -->
+        <div style="margin-top: 10px;">
+            <span>Share on:</span>
+            <a href="https://www.facebook.com/sharer/sharer.php?u=https://gateway.pinata.cloud/ipfs/${file.hash}" target="_blank">
+                <span class="iconify" data-icon="logos:facebook" style="font-size: 20px; margin-right: 5px;"></span>
+            </a>
+            <a href="https://twitter.com/intent/tweet?url=https://gateway.pinata.cloud/ipfs/${file.hash}&text=Check%20out%20this%20file!" target="_blank">
+                <span class="iconify" data-icon="logos:twitter" style="font-size: 20px; margin-right: 5px;"></span>
+            </a>
+            <a href="https://www.linkedin.com/sharing/share-offsite/?url=https://gateway.pinata.cloud/ipfs/${file.hash}" target="_blank">
+                <span class="iconify" data-icon="logos:linkedin" style="font-size: 20px; margin-right: 5px;"></span>
+            </a>
+            <a href="whatsapp://send?text=Check%20out%20this%20file!%20https://gateway.pinata.cloud/ipfs/${file.hash}" target="_blank">
+                <span class="iconify" data-icon="logos:whatsapp" style="font-size: 20px; margin-right: 5px;"></span>
+            </a>
+        </div>
+    </div>
+`;
+        
+        listContainer.appendChild(listItem);
+    });
+
+    // Update pagination controls
+    updatePaginationControls(Math.ceil(uploadedFiles.length / itemsPerPage));
+}
+
+// Utility function to capitalize the first letter of a string
+function capitalizeFirstLetter(string) {
+    return string.charAt(0).toUpperCase() + string.slice(1);
+}
+
+// Example of setting the current category when a tab is clicked
+document.querySelectorAll('.nav-link').forEach(link => {
+    link.addEventListener('click', function() {
+        currentCategory = this.getAttribute('href').substring(1); // Get category from href
+        currentPage = 1; // Reset to first page when changing category
+        loadCategoryFiles(currentCategory, 'uploaded' + capitalizeFirstLetter(currentCategory) + 'List'); // Load files for the selected category
+    });
+});
 
 function hideOverlay() {
     const overlay = document.getElementById("overlay");
@@ -383,7 +688,7 @@ document.getElementById("uploadForm").onsubmit = function(event) {
             const data = JSON.parse(xhr.responseText);
             if(data.success){
                 alert("File uploaded successfully! IPFS Hash: " + data.ipfsHash);
-                saveUploadedFile(data.ipfsHash); // Save to local storage
+                saveUploadedFile(data.fileName, data.ipfsHash, data.sha256Hash, data.uploadDate); // Save with all details
                 loadUploadedFiles(); // Reload uploaded files list
             } else {
                 alert(data.message);

@@ -41,10 +41,24 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['file'])) {
 
         // Decode the response
         $responseBody = json_decode($response->getBody(), true);
-        $ipfsHash = $responseBody['IpfsHash'];
+        
+// Assuming you have your upload logic here
+$originalFileName = $_FILES['file']['name']; // Get the original filename
+$fileTmpPath = $_FILES['file']['tmp_name']; // Temporary file path
+// Calculate SHA-256 hash
+$sha256Hash = hash_file('sha256', $fileTmpPath);
+$ipfsHash = $responseBody['IpfsHash']; // Your logic to get IPFS hash
+// Get current date and time
+$currentDate = date("Y-m-d H:i:s");
 
         // Store IPFS Hash in local storage
-        echo json_encode(['success' => true, 'ipfsHash' => $ipfsHash]);
+        echo json_encode([
+    "success" => true,
+    "ipfsHash" => $ipfsHash,
+    "fileName" => $originalFileName, // Return the original filename
+    "sha256Hash" => $sha256Hash, // Return SHA-256 hash
+    "uploadDate" => $currentDate // Return upload date
+]);
         
     } catch (Exception $e) {
         echo json_encode(['success' => false, 'message' => "Error uploading file: " . $e->getMessage()]);

@@ -174,3 +174,13 @@ ul {
 li {
     margin-bottom: 10px; /* Space between list items */
 }
+    .file-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+    .file-thumbnail {
+        width: 50px; /* Thumbnail width */
+        height: 50px; /* Thumbnail height */
+        margin-right: 10px; /* Space between thumbnail and text */
+    }
