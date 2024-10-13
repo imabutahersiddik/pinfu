@@ -3,12 +3,15 @@ require 'vendor/autoload.php';
 
 use GuzzleHttp\Client;
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['file'])) {
-    $file = $_FILES['file'];
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['files'])) {
+    $files = $_FILES['files'];
+    $uploadedFiles = [];
     
     // Check for upload errors
-    if ($file['error'] !== UPLOAD_ERR_OK) {
-        die("Upload failed with error code " . $file['error']);
+    foreach ($files['error'] as $error) {
+        if ($error !== UPLOAD_ERR_OK) {
+            die("Upload failed with error code " . $error);
+        }
     }
 
     // Retrieve keys from POST data
@@ -24,46 +27,59 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['file'])) {
     $client = new Client();
     
     try {
-        $response = $client->request('POST', 'https://api.pinata.cloud/pinning/pinFileToIPFS', [
-            'headers' => [
-                'Authorization' => 'Bearer ' . $jwt,
-                'pinata_api_key' => $apiKey,
-                'pinata_secret_api_key' => $apiSecret,
-            ],
-            'multipart' => [
-                [
-                    'name'     => 'file',
-                    'contents' => fopen($file['tmp_name'], 'r'),
-                    'filename' => $file['name']
-                ]
-            ]
-        ]);
+        // Loop through each file and upload
+        foreach ($files['tmp_name'] as $index => $tmpName) {
+            // Get the original filename
+            $originalFileName = $files['name'][$index];
 
-        // Decode the response
-        $responseBody = json_decode($response->getBody(), true);
-        
-// Assuming you have your upload logic here
-$originalFileName = $_FILES['file']['name']; // Get the original filename
-$fileTmpPath = $_FILES['file']['tmp_name']; // Temporary file path
-// Calculate SHA-256 hash
-$sha256Hash = hash_file('sha256', $fileTmpPath);
+            // Calculate SHA-256 hash
+            $sha256Hash = hash_file('sha256', $tmpName);
+
+            // Upload file to Pinata
+            $response = $client->request('POST', 'https://api.pinata.cloud/pinning/pinFileToIPFS', [
+                'headers' => [
+                    'Authorization' => 'Bearer ' . $jwt,
+                    'pinata_api_key' => $apiKey,
+                    'pinata_secret_api_key' => $apiSecret,
+                ],
+                'multipart' => [
+                    [
+                        'name'     => 'file',
+                        'contents' => fopen($tmpName, 'r'),
+                        'filename' => $originalFileName
+                    ]
+                ]
+            ]);
+
+            // Decode the response
+$responseBody = json_decode($response->getBody(), true);
 $ipfsHash = $responseBody['IpfsHash']; // Your logic to get IPFS hash
+
 // Get current date and time
 $currentDate = date("Y-m-d H:i:s");
 
-        // Store IPFS Hash in local storage
-        echo json_encode([
+// Assuming you have access to the original file name and size
+$originalFileName = $_FILES['files']['name'][$index]; // Adjust index as necessary
+$fileSize = $_FILES['files']['size'][$index]; // Get the size of the uploaded file
+
+// Store uploaded file information
+$uploadedFiles[] = [
     "success" => true,
     "ipfsHash" => $ipfsHash,
-    "fileName" => $originalFileName, // Return the original filename
-    "sha256Hash" => $sha256Hash, // Return SHA-256 hash
-    "uploadDate" => $currentDate // Return upload date
-]);
+    "fileName" => $originalFileName,
+    "sha256Hash" => $sha256Hash,
+    "uploadDate" => $currentDate,
+    "fileSize" => $fileSize // Add file size here
+];
+        }
+
+        // Return all uploaded files information as a JSON response
+        echo json_encode($uploadedFiles);
         
     } catch (Exception $e) {
-        echo json_encode(['success' => false, 'message' => "Error uploading file: " . $e->getMessage()]);
+        echo json_encode(['success' => false, 'message' => "Error uploading files: " . $e->getMessage()]);
     }
 } else {
-    echo json_encode(['success' => false, 'message' => "No file uploaded."]);
+    echo json_encode(['success' => false, 'message' => "No files uploaded."]);
 }
 ?>

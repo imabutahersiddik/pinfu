@@ -61,13 +61,17 @@
         <button onclick="saveKeys()">Save Keys</button>
         <button onclick="removeKeys()" class="hidden" id="removeKeysBtn">Remove Keys</button>
     </div>
-
-    <form id="uploadForm" action="upload.php" method="post" enctype="multipart/form-data">
-    <input type="file" name="file" required>
+    
+<form id="uploadForm" action="upload.php" method="post" enctype="multipart/form-data">
+    <div id="dropArea">
+        <p id="dropAreaText">Drag and drop files here or click to select</p>
+        <p id="selectedFilesText"></p> <!-- Placeholder for selected file names -->
+    </div>
+        <input type="file" name="files[]" id="fileInput" multiple required>
     <input type="hidden" id="hiddenApiKey" name="apiKey">
     <input type="hidden" id="hiddenApiSecret" name="apiSecret">
     <input type="hidden" id="hiddenJwt" name="jwt">
-    <button type="submit">Upload</button>
+    <button type="submit" class="button">Upload</button>
 </form>
 
 <div id="progressContainer" style="display: none;">
@@ -227,7 +231,7 @@
             alert("Keys removed successfully!");
         }
 
-function saveUploadedFile(fileName, ipfsHash, sha256Hash, uploadDate) {
+function saveUploadedFile(fileName, ipfsHash, sha256Hash, uploadDate, fileSize) {
     console.log(`Saving file: ${fileName} with IPFS Hash: ${ipfsHash}`); // Log received filename
 
     const extension = fileName.split('.').pop().toLowerCase();
@@ -235,72 +239,74 @@ function saveUploadedFile(fileName, ipfsHash, sha256Hash, uploadDate) {
     let category;
     
     // Determine category based on file extension
-if ([
-    'jpg', 'jpeg', 'png', 'gif', 'bmp', 'tiff', 'tif', 
-    'svg', 'webp', 'heif', 'heic', 'raw', 'ico', 'jfif'
-].includes(extension)) {
-    category = 'images';
-} else if ([
-    'mp4', 'avi', 'mov', 'mkv', 'flv', 'wmv', 
-    'webm', 'mpeg', 'mpg', '3gp', '3g2', 'asf'
-].includes(extension)) {
-    category = 'videos';
-} else if ([
-    'zip', 'rar', 'tar', 'gz', '7z', 
-    'bz2', 'xz', 'iso', 'cab'
-].includes(extension)) {
-    category = 'archives';
-} else if ([
-    'exe', 'dmg', 'msi',
-    'deb', 'rpm',
-    'apk',
-    'bin',  // Binary files
-    'lib'   // Library files
-].includes(extension)) {
-    category = 'software';
-} else if ([
-    'pdf',
-    'doc', 'docx',
-    'xls', 'xlsx',
-    'ppt', 'pptx',
-    'txt',
-    'csv',
-    'odt',
-    'ods',
-    'odp',
-    'rtf',
-    'xml'
-].includes(extension)) {
-    category = 'documents';
-} else if ([
-    // Code and Script Files
-    'js',      // JavaScript files
-    'html',    // HTML files
-    'css',     // CSS files
-    // Configuration Files
-    '.env',
-    '.ini',
-    '.json',
-    '.yaml',
-    '.xml',
-    // Other Formats
-    '.sh'      // Shell script files
-].includes(extension)) {
-    category = "code";
-} else {
-    console.warn(`Unsupported file type: ${extension}`);
-    return; // Ignore unsupported file types
-}
+    if ([
+        'jpg', 'jpeg', 'png', 'gif', 'bmp', 'tiff', 'tif', 
+        'svg', 'webp', 'heif', 'heic', 'raw', 'ico', 'jfif'
+    ].includes(extension)) {
+        category = 'images';
+    } else if ([
+        'mp4', 'avi', 'mov', 'mkv', 'flv', 'wmv', 
+        'webm', 'mpeg', 'mpg', '3gp', '3g2', 'asf'
+    ].includes(extension)) {
+        category = 'videos';
+    } else if ([
+        'zip', 'rar', 'tar', 'gz', '7z', 
+        'bz2', 'xz', 'iso', 'cab'
+    ].includes(extension)) {
+        category = 'archives';
+    } else if ([
+        'exe', 'dmg', 'msi',
+        'deb', 'rpm',
+        'apk',
+        'bin',  // Binary files
+        'lib'   // Library files
+    ].includes(extension)) {
+        category = 'software';
+    } else if ([
+        'pdf',
+        'doc', 'docx',
+        'xls', 'xlsx',
+        'ppt', 'pptx',
+        'txt',
+        'csv',
+        'odt',
+        'ods',
+        'odp',
+        'rtf',
+        // Removed xml as it's already in code section
+    ].includes(extension)) {
+        category = 'documents';
+    } else if ([
+        // Code and Script Files
+        'js',      // JavaScript files
+        'html',    // HTML files
+        'css',     // CSS files
+        // Configuration Files
+        '.env',
+        '.ini',
+        '.json',
+        '.yaml',
+        '.xml',
+        // Other Formats
+        '.sh'      // Shell script files
+    ].includes(extension)) {
+        category = "code";
+    } else {
+        console.warn(`Unsupported file type: ${extension}`);
+        return; // Ignore unsupported file types
+    }
 
     let uploadedFiles = JSON.parse(localStorage.getItem(category)) || [];
     
-    // Save file name without extension and IPFS hash
+    // Save file details including size
     uploadedFiles.push({ 
-        name: fileName, 
+        name: fileName,
+        size: fileSize, // Add file size 
         hash: ipfsHash,
         sha256: sha256Hash,
         date: uploadDate 
     });
+    
     localStorage.setItem(category, JSON.stringify(uploadedFiles));
     
     // Debugging information to confirm saving
@@ -402,8 +408,17 @@ if ([
 
         listItem.innerHTML = `
     ${thumbnail}
-    <div>
+    <div style="border-bottom:1px;">
         <div>Name: <span><a style="color:#199909 !important" href='https://gateway.pinata.cloud/ipfs/${file.hash}' target='_blank'>${file.name}</a></span></div>
+        <div>Size: <span>
+    Size: 
+    ${file.size < 1024 ? file.size + ' bytes' : 
+      file.size < 1048576 ? (file.size / 1024).toFixed(2) + ' KB' : 
+      file.size < 1073741824 ? (file.size / 1048576).toFixed(2) + ' MB' : 
+      file.size < 1099511627776 ? (file.size / 1073741824).toFixed(2) + ' GB' : 
+      file.size < 1125899906842624 ? (file.size / 1099511627776).toFixed(2) + ' TB' : 
+      (file.size / 1125899906842624).toFixed(2) + ' PB'}
+</span></div>
         <div style="display: inline-block">IPFS Hash: <span style="font-size:9px">${file.hash}</span></div>
         <div style="display: inline-block">SHA-256 Hash: <span style="font-size:9px">${file.sha256}</span></div>
         <div style="display: inline-block">Upload Date: <span>${new Date(file.date).toLocaleString()}</span></div>
@@ -537,6 +552,15 @@ if ([
     ${thumbnail}
     <div>
         <div>Name: <span><a style="color:#199909 !important" href='https://gateway.pinata.cloud/ipfs/${file.hash}' target='_blank'>${file.name}</a></span></div>
+        <div>Size: <span>
+    Size: 
+    ${file.size < 1024 ? file.size + ' bytes' : 
+      file.size < 1048576 ? (file.size / 1024).toFixed(2) + ' KB' : 
+      file.size < 1073741824 ? (file.size / 1048576).toFixed(2) + ' MB' : 
+      file.size < 1099511627776 ? (file.size / 1073741824).toFixed(2) + ' GB' : 
+      file.size < 1125899906842624 ? (file.size / 1099511627776).toFixed(2) + ' TB' : 
+      (file.size / 1125899906842624).toFixed(2) + ' PB'}
+</span></div>
         <div style="display: inline-block">IPFS Hash: <span style="font-size:9px">${file.hash}</span></div>
         <div style="display: inline-block">SHA-256 Hash: <span style="font-size:9px">${file.sha256}</span></div>
         <div style="display: inline-block">Upload Date: <span>${new Date(file.date).toLocaleString()}</span></div>
@@ -674,33 +698,65 @@ document.getElementById("uploadForm").onsubmit = function(event) {
     
     xhr.open("POST", "upload.php", true);
 
+    let totalBytes = 0;
+    let loadedBytes = 0;
+
+    // Calculate total bytes of all files
+    for (let pair of formData.entries()) {
+        if (pair[0] === "files[]") {
+            const file = pair[1];
+            totalBytes += file.size;
+        }
+    }
+
     // Update progress bar
     xhr.upload.onprogress = function(event) {
         if (event.lengthComputable) {
-            const percentComplete = (event.loaded / event.total) * 100;
+            loadedBytes += event.loaded; // Accumulate loaded bytes
+            const percentComplete = (loadedBytes / totalBytes) * 100; // Calculate overall progress
             document.getElementById("uploadProgress").value = percentComplete;
             document.getElementById("progressPercentage").innerText = Math.round(percentComplete) + "%";
         }
     };
 
     xhr.onload = function() {
-        if (xhr.status === 200) {
-            const data = JSON.parse(xhr.responseText);
-            if(data.success){
-                alert("File uploaded successfully! IPFS Hash: " + data.ipfsHash);
-                saveUploadedFile(data.fileName, data.ipfsHash, data.sha256Hash, data.uploadDate); // Save with all details
-                loadUploadedFiles(); // Reload uploaded files list
+    if (xhr.status === 200) {
+        try {
+            const data = JSON.parse(xhr.responseText); // Parse the JSON response
+            
+            if (Array.isArray(data)) {
+                // Handle multiple files
+                data.forEach((file) => {
+                    if (file.success) {
+                        alert("File uploaded successfully! IPFS Hash: " + file.ipfsHash);
+                        // Save uploaded file details including size
+                        saveUploadedFile(
+                            file.fileName,
+                            file.ipfsHash,
+                            file.sha256Hash,
+                            file.uploadDate,
+                            file.fileSize // Pass the size of the uploaded file
+                        );
+                    } else {
+                        alert(file.message);
+                    }
+                });
             } else {
-                alert(data.message);
+                alert(data.message); // Handle single file response
             }
-        } else {
-            alert("Upload failed. Please try again.");
+            loadUploadedFiles(); // Reload uploaded files list
+        } catch (error) {
+            console.error("Error parsing JSON response:", error);
+            alert("An error occurred while processing the upload response.");
         }
-        // Hide progress container after upload
-        document.getElementById("progressContainer").style.display = "none";
-        document.getElementById("uploadProgress").value = 0; // Reset progress bar
-        document.getElementById("progressPercentage").innerText = "0%"; // Reset percentage
-    };
+    } else {
+        alert("Upload failed. Please try again.");
+    }
+    // Hide progress container after upload
+    document.getElementById("progressContainer").style.display = "none";
+    document.getElementById("uploadProgress").value = 0; // Reset progress bar
+    document.getElementById("progressPercentage").innerText = "0%"; // Reset percentage
+};
 
     xhr.onerror = function() {
         alert("An error occurred during the upload.");
@@ -709,6 +765,119 @@ document.getElementById("uploadForm").onsubmit = function(event) {
 
     xhr.send(formData);
 };
+
+const dropArea = document.getElementById('dropArea');
+const uploadForm = document.getElementById('uploadForm');
+const fileInput = document.getElementById('fileInput');
+const fileList = document.getElementById('fileList');
+
+// Prevent default behaviors for drag-and-drop
+['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+    dropArea.addEventListener(eventName, preventDefaults, false);    
+    document.body.addEventListener(eventName, preventDefaults, false); 
+});
+
+// Highlight the drop area when dragging files over it
+['dragenter', 'dragover'].forEach(eventName => {
+    dropArea.addEventListener(eventName, highlight, false);
+});
+
+// Remove highlight when leaving the drop area
+['dragleave', 'drop'].forEach(eventName => {
+    dropArea.addEventListener(eventName, unhighlight, false);
+});
+
+// Handle dropped files
+dropArea.addEventListener('drop', handleDrop, false);
+
+// Prevent default behavior (Prevent file from being opened)
+function preventDefaults(e) {
+    e.preventDefault();
+    e.stopPropagation();
+}
+
+// Highlight the drop area
+function highlight() {
+    dropArea.classList.add('highlight');
+}
+
+// Remove highlight from the drop area
+function unhighlight() {
+    dropArea.classList.remove('highlight');
+}
+
+// Handle files dropped into the drop area
+function handleDrop(e) {
+    const dt = e.dataTransfer;
+    const files = dt.files;
+
+    // Trigger the file upload function with the dropped files
+    handleFiles(files);
+}
+
+// Function to handle multiple files
+function handleFiles(files) {
+    if (files.length > 0) {
+        // Limit to a maximum of 8 files
+        const validFiles = Array.from(files).slice(0, 8);
+        
+        // Clear previous file list
+        fileList.innerHTML = '';
+
+        // Add each valid file to the list and set it in the input
+        for (let file of validFiles) {
+            const listItem = document.createElement("div");
+            listItem.innerText = file.name; // Display file name
+
+            // Optionally add a thumbnail for images
+            if (file.type.startsWith('image/')) {
+                const img = document.createElement("img");
+                img.src = URL.createObjectURL(file);
+                img.style.width = '50px'; // Thumbnail size
+                img.style.marginRight = '10px';
+                listItem.prepend(img);
+            }
+
+            fileList.appendChild(listItem); // Append to the file list
+
+            // Create a DataTransfer object to hold the files for input
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(file);
+
+            // Set the input's files property to the DataTransfer object
+            fileInput.files = dataTransfer.files;
+        }
+        
+        // Optionally trigger the upload immediately or show a preview
+        // uploadForm.submit(); // Automatically submit the form with the dropped files if desired
+    }
+}
+
+// Optional: Allow clicking on the drop area to open file dialog
+dropArea.addEventListener('click', () => {
+    fileInput.click();
+});
+document.getElementById('fileInput').addEventListener('change', function() {
+    const selectedFilesText = document.getElementById('selectedFilesText');
+    
+    // Clear previous file names
+    selectedFilesText.innerHTML = '';
+
+    // Get the list of selected files
+    const files = this.files;
+
+    // Check if any files are selected
+    if (files.length > 0) {
+        const fileNames = Array.from(files).map(file => file.name).join(', ');
+        selectedFilesText.textContent = `Selected files: ${fileNames}`;
+        
+        // Optional - Update drop area text
+        document.getElementById('dropAreaText').textContent = 'You can add more files or click Upload.';
+    } else {
+        selectedFilesText.textContent = ''; // Clear if no files are selected
+        document.getElementById('dropAreaText').textContent = 'Drag and drop files here or click to select';
+    }
+});
     </script>
 </body>
 </html>
