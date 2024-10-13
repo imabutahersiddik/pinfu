@@ -266,39 +266,3 @@ li {
     width: 0%; /* Make it cover the drop area */
     height: 0%; /* Make it cover the drop area */
 }
-.file-item_1 {
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    padding: 15px;
-    margin: 10px 0;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-}
-
-.file-details {
-    margin-top: 10px;
-}
-
-.file-name {
-    font-weight: bold;
-}
-
-.file-link {
-    color: #199909 !important;
-    text-decoration: none;
-}
-
-.file-link:hover {
-    text-decoration: underline;
-}
-
-.file-size,
-.file-ipfs,
-.file-sha256,
-.file-upload-date {
-    margin-top: 5px;
-}
-
-.hash {
-    font-size: 9px;
-    color: #555;
-}

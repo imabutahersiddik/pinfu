@@ -84,6 +84,37 @@ To view uploaded files:
 - Add functionality to delete or manage previously uploaded files.
 - Improve error handling for better user experience during uploads.
 
+### What's New in the October 13, 2024 Update
+
+#### 1. **Enhanced File Upload Details**
+   - **SHA-256 Hash Storage**: Each uploaded file now includes a SHA-256 hash for improved verification and integrity checks.
+   - **Upload Date Tracking**: The date and time of each file upload are now recorded, allowing users to see when files were added.
+
+#### 2. **Social Media Sharing Functionality**
+   - **Share Buttons Added**: Users can now easily share uploaded files on popular social media platforms, including:
+     - **Facebook**
+     - **Twitter**
+     - **LinkedIn**
+     - **WhatsApp**
+   - **Iconify Integration**: Social share buttons feature icons from the Iconify library for a modern and visually appealing interface.
+
+#### 3. **Added Tabs for Categorization**
+   - **File Category Tabs**: The application now includes dedicated tabs for categorizing uploaded files, such as Images, Videos, Archives, and Software. This allows users to easily navigate and manage their files based on type.
+
+#### 4. **Improved Pagination Logic**
+   - **Category-Specific Pagination**: Pagination functionality has been enhanced to work seamlessly with different file categories, allowing users to navigate through their uploaded files easily.
+   - **Current Category Detection**: The application now intelligently detects the current tab/category, ensuring that pagination works correctly for each section.
+   
+### What's New in the October 14, 2024 Update
+
+#### 1. **Enhanced File Upload with Drag-and-Drop Support**
+
+The addition of drag-and-drop functionality greatly improves the file upload process.
+
+#### 2. **File Size Displayed in User Interface**
+
+Easily view file sizes in the UI for quick access and better file management.
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
